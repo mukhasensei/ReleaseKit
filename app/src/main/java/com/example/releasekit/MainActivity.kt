@@ -27,13 +27,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnSort: Button
     private lateinit var btnShare: Button
 
-    private val updateLauncher = registerForActivityResult(
-        ActivityResultContracts.StartIntentSenderForResult(),
-    ) { result ->
-        if (result.resultCode != RESULT_OK) {
-            Toast.makeText(this, R.string.update_cancelled, Toast.LENGTH_SHORT).show()
+    private val updateLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.StartIntentSenderForResult(),
+        ) { result ->
+            if (result.resultCode != RESULT_OK) {
+                Toast.makeText(this, R.string.update_cancelled, Toast.LENGTH_SHORT).show()
+            }
         }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,14 +45,15 @@ class MainActivity : AppCompatActivity() {
         tasks = store.load()
         updateManager = AppUpdateManagerFactory.create(this)
 
-        findViewById<TextView>(R.id.tvBuildInfo).text = getString(
-            R.string.build_info,
-            BuildConfig.APPLICATION_ID,
-            BuildConfig.VERSION_NAME,
-            BuildConfig.VERSION_CODE,
-            BuildConfig.BUILD_TYPE,
-            BuildConfig.API_BASE_URL,
-        )
+        findViewById<TextView>(R.id.tvBuildInfo).text =
+            getString(
+                R.string.build_info,
+                BuildConfig.APPLICATION_ID,
+                BuildConfig.VERSION_NAME,
+                BuildConfig.VERSION_CODE,
+                BuildConfig.BUILD_TYPE,
+                BuildConfig.API_BASE_URL,
+            )
 
         adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, tasks.items.toMutableList())
         findViewById<ListView>(R.id.listTasks).apply {
@@ -81,10 +83,11 @@ class MainActivity : AppCompatActivity() {
 
         btnShare = findViewById(R.id.btnShare)
         btnShare.setOnClickListener {
-            val send = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, tasks.toShareText())
-            }
+            val send =
+                Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, tasks.toShareText())
+                }
             startActivity(Intent.createChooser(send, getString(R.string.share)))
         }
 
@@ -118,20 +121,22 @@ class MainActivity : AppCompatActivity() {
         updateManager.appUpdateInfo
             .addOnSuccessListener { info ->
                 val available = info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
-                val action = UpdatePolicy.decide(
-                    currentVersionCode = BuildConfig.VERSION_CODE,
-                    minSupportedVersionCode = FeatureFlags.minSupportedVersionCode().toInt(),
-                    availableVersionCode = if (available) info.availableVersionCode() else null,
-                    priority = info.updatePriority(),
-                )
-                val type = when (action) {
-                    UpdateAction.IMMEDIATE -> AppUpdateType.IMMEDIATE
-                    UpdateAction.FLEXIBLE -> AppUpdateType.FLEXIBLE
-                    UpdateAction.NONE -> {
-                        if (manual) toast(R.string.no_update)
-                        return@addOnSuccessListener
+                val action =
+                    UpdatePolicy.decide(
+                        currentVersionCode = BuildConfig.VERSION_CODE,
+                        minSupportedVersionCode = FeatureFlags.minSupportedVersionCode().toInt(),
+                        availableVersionCode = if (available) info.availableVersionCode() else null,
+                        priority = info.updatePriority(),
+                    )
+                val type =
+                    when (action) {
+                        UpdateAction.IMMEDIATE -> AppUpdateType.IMMEDIATE
+                        UpdateAction.FLEXIBLE -> AppUpdateType.FLEXIBLE
+                        UpdateAction.NONE -> {
+                            if (manual) toast(R.string.no_update)
+                            return@addOnSuccessListener
+                        }
                     }
-                }
                 if (available && info.isUpdateTypeAllowed(type)) {
                     updateManager.startUpdateFlowForResult(
                         info,

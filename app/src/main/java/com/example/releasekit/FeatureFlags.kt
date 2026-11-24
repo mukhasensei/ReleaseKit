@@ -12,35 +12,36 @@ object FeatureFlags {
     const val SHARE_TASKS = "share_tasks"
     const val MIN_VERSION_CODE = "min_supported_version_code"
 
-    private val defaults: Map<String, Any> = mapOf(
-        SORT_TASKS to true,
-        SHARE_TASKS to true,
-        MIN_VERSION_CODE to 0L,
-    )
+    private val defaults: Map<String, Any> =
+        mapOf(
+            SORT_TASKS to true,
+            SHARE_TASKS to true,
+            MIN_VERSION_CODE to 0L,
+        )
 
     private var remote: FirebaseRemoteConfig? = null
 
     fun init(onUpdated: () -> Unit) {
-        remote = try {
-            FirebaseRemoteConfig.getInstance().also { cfg ->
-                val settings = FirebaseRemoteConfigSettings.Builder()
-                    .setMinimumFetchIntervalInSeconds(if (BuildConfig.DEBUG) 0L else FETCH_INTERVAL_SEC)
-                    .build()
-                cfg.setConfigSettingsAsync(settings)
-                cfg.setDefaultsAsync(defaults)
-                cfg.fetchAndActivate().addOnCompleteListener { onUpdated() }
+        remote =
+            try {
+                FirebaseRemoteConfig.getInstance().also { cfg ->
+                    val settings =
+                        FirebaseRemoteConfigSettings.Builder()
+                            .setMinimumFetchIntervalInSeconds(if (BuildConfig.DEBUG) 0L else FETCH_INTERVAL_SEC)
+                            .build()
+                    cfg.setConfigSettingsAsync(settings)
+                    cfg.setDefaultsAsync(defaults)
+                    cfg.fetchAndActivate().addOnCompleteListener { onUpdated() }
+                }
+            } catch (ignored: IllegalStateException) {
+                onUpdated() // Firebase не настроен: работаем на значениях по умолчанию
+                null
             }
-        } catch (ignored: IllegalStateException) {
-            onUpdated() // Firebase не настроен: работаем на значениях по умолчанию
-            null
-        }
     }
 
-    fun isEnabled(key: String): Boolean =
-        remote?.getBoolean(key) ?: (defaults[key] as? Boolean ?: false)
+    fun isEnabled(key: String): Boolean = remote?.getBoolean(key) ?: (defaults[key] as? Boolean ?: false)
 
-    fun minSupportedVersionCode(): Long =
-        remote?.getLong(MIN_VERSION_CODE) ?: 0L
+    fun minSupportedVersionCode(): Long = remote?.getLong(MIN_VERSION_CODE) ?: 0L
 
     private const val FETCH_INTERVAL_SEC = 3600L
 }

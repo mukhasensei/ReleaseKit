@@ -24,13 +24,11 @@ class TaskList(initial: List<String> = emptyList()) {
         _items.sortBy { it.lowercase() }
     }
 
-    fun toShareText(): String =
-        _items.mapIndexed { i, s -> "${i + 1}. $s" }.joinToString("\n")
+    fun toShareText(): String = _items.mapIndexed { i, s -> "${i + 1}. $s" }.joinToString("\n")
 
     fun serialize(): String = _items.joinToString("\n")
 
     companion object {
-        fun deserialize(raw: String?): TaskList =
-            TaskList(raw?.split("\n")?.filter { it.isNotBlank() } ?: emptyList())
+        fun deserialize(raw: String?): TaskList = TaskList(raw?.split("\n")?.filter { it.isNotBlank() } ?: emptyList())
     }
 }

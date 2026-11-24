@@ -16,12 +16,13 @@ object UpdatePolicy {
         minSupportedVersionCode: Int,
         availableVersionCode: Int?,
         priority: Int,
-    ): UpdateAction = when {
-        currentVersionCode < minSupportedVersionCode -> UpdateAction.IMMEDIATE
-        availableVersionCode == null || availableVersionCode <= currentVersionCode -> UpdateAction.NONE
-        priority >= HIGH_PRIORITY -> UpdateAction.IMMEDIATE
-        else -> UpdateAction.FLEXIBLE
-    }
+    ): UpdateAction =
+        when {
+            currentVersionCode < minSupportedVersionCode -> UpdateAction.IMMEDIATE
+            availableVersionCode == null || availableVersionCode <= currentVersionCode -> UpdateAction.NONE
+            priority >= HIGH_PRIORITY -> UpdateAction.IMMEDIATE
+            else -> UpdateAction.FLEXIBLE
+        }
 
     private const val HIGH_PRIORITY = 4
 }

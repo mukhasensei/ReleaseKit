@@ -16,6 +16,6 @@ object CrashReporter {
 
     /** Задание 13: тестовый крэш. Кнопка видна только в debug/staging (BuildConfig.ENABLE_TEST_CRASH). */
     fun crashForTest(): Nothing {
-        throw IllegalStateException("Test crash from ReleaseKit ${BuildConfig.VERSION_NAME}")
+        error("Test crash from ReleaseKit ${BuildConfig.VERSION_NAME}")
     }
 }
