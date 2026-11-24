@@ -1,0 +1,96 @@
+name: Release
+
+# Задание 11: тег v* -> подписанный AAB -> internal track -> (ручное подтверждение) -> production 1%
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  KEYSTORE_FILE: ${{ github.workspace }}/release.jks
+  KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+  KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+  KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+  ANALYTICS_KEY: ${{ secrets.ANALYTICS_KEY }}
+  PLAY_CREDENTIALS_FILE: ${{ github.workspace }}/play-service-account.json
+
+jobs:
+  internal:
+    name: Build + publish to internal
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag must match version.properties
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          FILE=$(grep '^VERSION_NAME=' version.properties | cut -d= -f2 | tr -d '[:space:]')
+          if [ "$TAG" != "$FILE" ]; then
+            echo "Tag v$TAG != version.properties ($FILE)"; exit 1
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Restore secrets
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.jks
+          echo '${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}' > play-service-account.json
+          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" ]; then
+            echo "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" | base64 -d > app/google-services.json
+          fi
+
+      - name: Test
+        run: ./gradlew testReleaseUnitTest
+
+      - name: Build signed AAB + APK
+        run: ./gradlew bundleRelease assembleRelease
+
+      - name: Publish to internal track
+        run: ./gradlew publishReleaseBundle --track internal --release-status completed
+
+      - name: Save artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ github.ref_name }}
+          path: |
+            app/build/outputs/bundle/release/*.aab
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/mapping/release/mapping.txt
+
+      - name: GitHub Release (APK + AAB)
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            app/build/outputs/bundle/release/*.aab
+            app/build/outputs/apk/release/*.apk
+          generate_release_notes: true
+
+  production:
+    name: Promote internal -> production (manual approval)
+    needs: internal
+    runs-on: ubuntu-latest
+    # В Settings -> Environments создайте окружение "production" и включите Required reviewers:
+    # job будет ждать нажатия «Approve» в GitHub.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Restore Play credentials
+        run: echo '${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}' > play-service-account.json
+      - name: Promote with 1% staged rollout
+        run: >
+          ./gradlew promoteReleaseArtifact
+          --from-track internal --promote-track production
+          --release-status inProgress --user-fraction 0.01

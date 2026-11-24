@@ -1,0 +1,1 @@
+A simple offline to-do list. No account, no ads.

@@ -1,0 +1,9 @@
+ReleaseKit Tasks is a minimal to-do list that keeps everything on your device.
+
+• Add tasks in two taps
+• Long-press a task to delete it
+• Sort the list A–Z
+• Share the list as plain text
+• In-app updates: new versions install without leaving the app
+
+Privacy first: your tasks are stored only on your phone. The app sends anonymous crash reports and basic usage statistics (Firebase) so we can fix bugs faster. No ads, no account.

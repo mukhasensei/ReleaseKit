@@ -1,0 +1,19 @@
+# Скопируйте в local.properties (файл в .gitignore, в репозиторий НЕ коммитится).
+# Android Studio сам добавит sdk.dir.
+
+# --- Адреса API по типам сборки ---
+API_URL_DEBUG=https://dev.api.example.com/
+API_URL_STAGING=https://staging.api.example.com/
+API_URL_RELEASE=https://api.example.com/
+
+# --- Ключ аналитики (пример секрета) ---
+ANALYTICS_KEY=replace-me
+
+# --- Подпись release (можно также передавать переменными окружения) ---
+KEYSTORE_FILE=/абсолютный/путь/к/release.jks
+KEYSTORE_PASSWORD=replace-me
+KEY_ALIAS=upload
+KEY_PASSWORD=replace-me
+
+# --- Gradle Play Publisher ---
+PLAY_CREDENTIALS_FILE=/абсолютный/путь/к/play-service-account.json

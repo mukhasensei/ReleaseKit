@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="build_info">%1$s\nv%2$s (%3$d) · %4$s\nAPI: %5$s</string>
+    <string name="new_task_hint">Новая задача</string>
+    <string name="add">Добавить</string>
+    <string name="long_press_hint">Долгое нажатие на задачу — удалить</string>
+    <string name="sort">Сортировать А–Я</string>
+    <string name="share">Поделиться</string>
+    <string name="check_update">Проверить обновления</string>
+    <string name="test_crash">Тестовый крэш (не в release)</string>
+    <string name="no_update">Установлена последняя версия</string>
+    <string name="update_check_failed">Не удалось проверить обновления</string>
+    <string name="update_cancelled">Обновление отменено</string>
+</resources>

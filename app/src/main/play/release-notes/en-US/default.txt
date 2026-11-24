@@ -1,0 +1,3 @@
+• First public release
+• Add, delete and share tasks
+• Works fully offline

@@ -1,0 +1,12 @@
+build:
+  maxIssues: 0
+style:
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    maxLineLength: 120
+  ReturnCount:
+    max: 3
+complexity:
+  LongMethod:
+    threshold: 80

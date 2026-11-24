@@ -1,0 +1,145 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'com.github.triplet.play'
+    id 'io.gitlab.arturbosch.detekt'
+    id 'org.jlleitschuh.gradle.ktlint'
+}
+
+// Firebase подключается, только если положили app/google-services.json (файл в .gitignore).
+// Без него приложение собирается и работает, просто без Crashlytics/Analytics/Remote Config.
+if (file('google-services.json').exists()) {
+    apply plugin: 'com.google.gms.google-services'
+    apply plugin: 'com.google.firebase.crashlytics'
+}
+
+// ---------- Задание 2: версия из version.properties (SemVer) ----------
+def versionProps = new Properties()
+rootProject.file('version.properties').withInputStream { versionProps.load(it) }
+def semVerName = versionProps.getProperty('VERSION_NAME').trim()
+def (vMajor, vMinor, vPatch) = semVerName.split('-')[0].tokenize('.').collect { it.toInteger() }
+if (vMinor > 99 || vPatch > 99) {
+    throw new GradleException("MINOR и PATCH должны быть < 100: ${semVerName}")
+}
+// 1.2.1 -> 10201; код всегда растёт вместе с версией, конфликтов versionCode нет
+def computedVersionCode = vMajor * 10000 + vMinor * 100 + vPatch
+
+// ---------- Задание 3: секреты из env / local.properties ----------
+def localProps = new Properties()
+def localFile = rootProject.file('local.properties')
+if (localFile.exists()) {
+    localFile.withInputStream { localProps.load(it) }
+}
+def secret = { String key, String fallback ->
+    System.getenv(key) ?: localProps.getProperty(key) ?: fallback
+}
+
+android {
+    namespace 'com.example.releasekit'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.example.releasekit'
+        minSdk 26
+        targetSdk 36
+        versionCode computedVersionCode
+        versionName semVerName
+        buildConfigField 'String', 'ANALYTICS_KEY', "\"${secret('ANALYTICS_KEY', 'dev-placeholder')}\""
+    }
+
+    // ---------- Задание 5: подпись ----------
+    signingConfigs {
+        release {
+            def ksPath = secret('KEYSTORE_FILE', null)
+            if (ksPath) {
+                storeFile file(ksPath)
+                storePassword secret('KEYSTORE_PASSWORD', '')
+                keyAlias secret('KEY_ALIAS', '')
+                keyPassword secret('KEY_PASSWORD', '')
+            }
+        }
+    }
+
+    // ---------- Задания 3 и 4: build types, R8, ресурсы ----------
+    buildTypes {
+        release {
+            def hasKeystore = signingConfigs.release.storeFile != null
+            if (hasKeystore) {
+                signingConfig signingConfigs.release
+            } else {
+                logger.warn('WARNING: KEYSTORE_FILE не задан, release подписан debug-ключом (в магазин такой нельзя!)')
+                signingConfig signingConfigs.debug
+            }
+            // -PnoMinify нужен только для сравнения размера APK (scripts/measure-size.sh)
+            minifyEnabled !project.hasProperty('noMinify')
+            shrinkResources !project.hasProperty('noMinify')
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            resValue 'string', 'app_name', 'ReleaseKit'
+            buildConfigField 'String', 'API_BASE_URL', "\"${secret('API_URL_RELEASE', 'https://api.example.com/')}\""
+            buildConfigField 'boolean', 'ENABLE_TEST_CRASH', 'false'
+        }
+        staging {
+            initWith release
+            matchingFallbacks = ['release']
+            applicationIdSuffix '.staging'
+            versionNameSuffix '-staging'
+            signingConfig signingConfigs.debug
+            resValue 'string', 'app_name', 'ReleaseKit Staging'
+            buildConfigField 'String', 'API_BASE_URL', "\"${secret('API_URL_STAGING', 'https://staging.api.example.com/')}\""
+            buildConfigField 'boolean', 'ENABLE_TEST_CRASH', 'true'
+        }
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+            resValue 'string', 'app_name', 'ReleaseKit Dev'
+            buildConfigField 'String', 'API_BASE_URL', "\"${secret('API_URL_DEBUG', 'https://dev.api.example.com/')}\""
+            buildConfigField 'boolean', 'ENABLE_TEST_CRASH', 'true'
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    lint {
+        abortOnError true
+        checkReleaseBuilds true
+    }
+}
+
+// ---------- Задания 10-11: линтеры ----------
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom("$rootDir/config/detekt/detekt.yml")
+}
+ktlint {
+    android = true
+}
+
+// ---------- Задание 11: Gradle Play Publisher ----------
+play {
+    serviceAccountCredentials.set(file(secret('PLAY_CREDENTIALS_FILE', "$rootDir/play-service-account.json")))
+    defaultToAppBundles.set(true)
+}
+
+dependencies {
+    implementation 'androidx.core:core-ktx:1.15.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'com.google.android.play:app-update:2.1.0'
+
+    implementation platform('com.google.firebase:firebase-bom:33.16.0')
+    implementation 'com.google.firebase:firebase-crashlytics'
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-config'
+
+    testImplementation 'junit:junit:4.13.2'
+}
